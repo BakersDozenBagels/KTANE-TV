@@ -1,0 +1,230 @@
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Video;
+
+public class TVScript : MonoBehaviour
+{
+    public GameObject RigFab;
+    public AnimationCurve WobbleCurve;
+    public VideoPlayer Player;
+    public AudioSource Source1, Source2, SourceStatic;
+    public MeshRenderer staticMat;
+    public KMSelectable buttonVol, buttonPow, buttonBrg, buttonCon, buttonChn;
+    public GameObject staticScreen, videoScreen, blackScreen;
+    public KMBombInfo Info;
+    public KMBombModule Module;
+
+    private int _id;
+    private static int _idC;
+
+    private int dirMode, spinMode;
+    private int screenMode = 3;
+
+    private float volume = 0.1f;
+
+    private static VideoClip[] clips = new VideoClip[0];
+    private int currentClip = 1;
+
+    private bool _solved = false;
+
+    private CameraRig Rig;
+
+    void Start()
+    {
+        GameObject c = Instantiate(RigFab);
+        c.transform.position = transform.position * 10 + new Vector3(0f, 1000f, 0f);
+        Rig = c.GetComponent<CameraRig>();
+
+        _id = _idC++;
+        dirMode = UnityEngine.Random.Range(0, 8);
+        //Debug.LogFormat("[TV #{0}] Pointing {1}.", _id, new string[] { "up", "right", "down", "left" }[dirMode % 4]);
+        if(dirMode < 4)
+            StartCoroutine(Spin(dirMode));
+        else
+            StartCoroutine(Wobble(dirMode));
+
+        spinMode = UnityEngine.Random.Range(0, 2);
+        //Debug.LogFormat("[TV #{0}] Spinning {1}.", _id, new string[] { "clockwise", "counter-clockwise" }[spinMode]);
+        StartCoroutine(SpinSpinner());
+
+#if UNITY_EDITOR
+        if(clips.Length == 0)
+        {
+            clips = GetComponent<EditorVideos>().clips;
+        }
+#else
+        if(clips.Length == 0)
+        {
+            IEnumerator videos = KeepCoding.PathManager.LoadVideoClips(GetType(), "video");
+            while(videos.MoveNext())
+            {
+                if(videos.Current.GetType() == typeof(VideoClip[]))
+                {
+                    clips = (VideoClip[])videos.Current;
+                }
+            }
+        }
+#endif
+        Rig.Camera.targetTexture = new RenderTexture(Rig.Camera.targetTexture);
+        staticMat.material = new Material(staticMat.material)
+        {
+            mainTexture = Rig.Camera.targetTexture
+        };
+        //camera.fieldOfView *= transform.lossyScale.x;
+        //camera.farClipPlane *= transform.lossyScale.y;
+        Player.clip = clips[1];
+        Player.SetTargetAudioSource(0, Source1);
+        Player.SetTargetAudioSource(1, Source2);
+        Source1.volume = volume;
+        Source2.volume = volume;
+        SourceStatic.volume = volume;
+        Player.Play();
+        SourceStatic.Play();
+
+        Player.isLooping = true;
+        Player.loopPointReached += NextVideo;
+
+        buttonVol.OnInteract += () => { buttonVol.AddInteractionPunch(0.1f); volume += 0.1f; volume %= 1f; Source1.volume = volume; Source2.volume = volume; SourceStatic.volume = volume; return false; };
+        buttonPow.OnInteract += () => { buttonPow.AddInteractionPunch(0.1f); Power(); return false; };
+        buttonChn.OnInteract += () => { buttonChn.AddInteractionPunch(0.1f); Channel(); return false; };
+        Power();
+        Channel();
+
+        buttonBrg.OnInteract += () => { buttonBrg.AddInteractionPunch(0.1f); LeftRight(); return false; };
+        buttonCon.OnInteract += () => { buttonCon.AddInteractionPunch(0.1f); UpDown(); return false; };
+    }
+
+    private void LeftRight()
+    {
+        if(Mathf.FloorToInt(Info.GetTime()) % 2 == 0)
+            Check(3);
+        else
+            Check(1);
+    }
+
+    private void UpDown()
+    {
+        if(Mathf.FloorToInt(Info.GetTime()) % 2 == 0)
+            Check(0);
+        else
+            Check(2);
+    }
+
+    private void Check(int dir)
+    {
+        if(_solved)
+            return;
+        if(dirMode % 4 == dir ^ spinMode == 1)
+        {
+            //Debug.LogFormat("[TV # {0}] Corect! Solved.", _id);
+            Module.HandlePass();
+            _solved = true;
+        }
+        else
+        {
+            //Debug.LogFormat("[TV # {0}] Struck! You entered {1}, but I expected {2}.", _id, new string[] { "up", "right", "down", "left" }[dir], new string[] { "up", "right", "down", "left" }[dirMode % 4]);
+            Module.HandleStrike();
+        }
+    }
+
+    private void NextVideo(VideoPlayer source)
+    {
+        currentClip++;
+        Player.clip = clips[currentClip %= clips.Length];
+        Player.time = 0;
+        Player.Play();
+    }
+
+    private void Channel()
+    {
+        if(screenMode % 2 == 0)
+        {
+            screenMode++;
+            buttonChn.transform.localPosition = new Vector3(-0.01f, 0f, 0.0081f);
+        }
+        else
+        {
+            screenMode--;
+            buttonChn.transform.localPosition = new Vector3(0.01f, 0f, 0.0081f);
+        }
+        //if(screenMode > 1)
+            //Debug.LogFormat("[TV #{0}] Turned screen to {1}.", _id, new string[] { "Off", "Off", "Channel 3", "Channel 4" }[screenMode]);
+        UpdateScreen();
+    }
+
+    private void Power()
+    {
+        screenMode += 2;
+        screenMode %= 4;
+        //Debug.LogFormat("[TV #{0}] Turned screen to {1}.", _id, new string[] { "Off", "Off", "Channel 3", "Channel 4" }[screenMode]);
+        UpdateScreen();
+    }
+
+    private void UpdateScreen()
+    {
+        switch(screenMode)
+        {
+            case 2:
+                Source1.mute = true;
+                Source2.mute = true;
+                SourceStatic.mute = false;
+                staticScreen.transform.localPosition = new Vector3(0f, 0f, 0f);
+                videoScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
+                blackScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
+                Player.Stop();
+                break;
+            case 3:
+                Source1.mute = false;
+                Source2.mute = false;
+                SourceStatic.mute = true;
+                staticScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
+                videoScreen.transform.localPosition = new Vector3(0f, 0f, 0f);
+                blackScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
+                Player.Play();
+                break;
+            default:
+                Source1.mute = true;
+                Source2.mute = true;
+                SourceStatic.mute = true;
+                staticScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
+                videoScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
+                blackScreen.transform.localPosition = new Vector3(0f, 0f, 0f);
+                Player.Stop();
+                break;
+        }
+    }
+
+    private IEnumerator Wobble(int dirMode)
+    {
+        float timer = 0;
+        while(true)
+        {
+            timer += Time.deltaTime;
+            Rig.ArrowParent.localEulerAngles = new Vector3(0f, 90f * dirMode + 30f * WobbleCurve.Evaluate(timer / 6f), 0f);
+            yield return null;
+        }
+    }
+
+    private IEnumerator Spin(int dirMode)
+    {
+        Rig.ArrowParent.localEulerAngles = new Vector3(0f, 90f * dirMode, 0f);
+        float timer = 0f;
+        while(true)
+        {
+            timer += Time.deltaTime;
+            Rig.Arrow.localEulerAngles = new Vector3(-60f * timer, 0f, 0f);
+            yield return null;
+        }
+    }
+
+    private IEnumerator SpinSpinner()
+    {
+        while(true)
+        {
+            Rig.BackSpinner.localEulerAngles += new Vector3(0f, spinMode == 0 ? Time.deltaTime * 60f : Time.deltaTime * -60f, 0f);
+            yield return null;
+        }
+    }
+}
