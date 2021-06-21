@@ -1,15 +1,14 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Video;
+using KeepCoding;
 
 public class TVScript : MonoBehaviour
 {
     public GameObject RigFab;
     public AnimationCurve WobbleCurve;
     public VideoPlayer Player;
-    public AudioSource Source1, Source2, SourceStatic;
+    public AudioScript Source1, Source2, SourceStatic;
     public MeshRenderer staticMat;
     public KMSelectable buttonVol, buttonPow, buttonBrg, buttonCon, buttonChn;
     public GameObject staticScreen, videoScreen, blackScreen;
@@ -37,16 +36,13 @@ public class TVScript : MonoBehaviour
         c.transform.position = transform.position * 10 + new Vector3(0f, 1000f, 0f);
         Rig = c.GetComponent<CameraRig>();
 
-        _id = _idC++;
-        dirMode = UnityEngine.Random.Range(0, 8);
-        //Debug.LogFormat("[TV #{0}] Pointing {1}.", _id, new string[] { "up", "right", "down", "left" }[dirMode % 4]);
-        if(dirMode < 4)
-            StartCoroutine(Spin(dirMode));
-        else
-            StartCoroutine(Wobble(dirMode));
+        _id = ++_idC;
+        dirMode = Random.Range(0, 4);
+        Debug.LogFormat("[TV #{0}] Pointing {1}.", _id, new string[] { "up", "right", "down", "left" }[dirMode % 4]);
+        StartCoroutine(Spin(dirMode));
 
-        spinMode = UnityEngine.Random.Range(0, 2);
-        //Debug.LogFormat("[TV #{0}] Spinning {1}.", _id, new string[] { "clockwise", "counter-clockwise" }[spinMode]);
+        spinMode = Random.Range(0, 2);
+        Debug.LogFormat("[TV #{0}] Spinning {1}.", _id, new string[] { "clockwise", "counter-clockwise" }[spinMode]);
         StartCoroutine(SpinSpinner());
 
 #if UNITY_EDITOR
@@ -75,18 +71,18 @@ public class TVScript : MonoBehaviour
         //camera.fieldOfView *= transform.lossyScale.x;
         //camera.farClipPlane *= transform.lossyScale.y;
         Player.clip = clips[1];
-        Player.SetTargetAudioSource(0, Source1);
-        Player.SetTargetAudioSource(1, Source2);
-        Source1.volume = volume;
-        Source2.volume = volume;
-        SourceStatic.volume = volume;
+        Player.SetTargetAudioSource(0, Source1.AudioSource);
+        Player.SetTargetAudioSource(1, Source2.AudioSource);
+        Source1.Volume = volume;
+        Source2.Volume = volume;
+        SourceStatic.Volume = volume;
         Player.Play();
-        SourceStatic.Play();
+        SourceStatic.AudioSource.Play();
 
         Player.isLooping = true;
         Player.loopPointReached += NextVideo;
 
-        buttonVol.OnInteract += () => { buttonVol.AddInteractionPunch(0.1f); volume += 0.1f; volume %= 1f; Source1.volume = volume; Source2.volume = volume; SourceStatic.volume = volume; return false; };
+        buttonVol.OnInteract += () => { buttonVol.AddInteractionPunch(0.1f); volume += 0.1f; volume %= 1f; Source1.Volume = volume; Source2.Volume = volume; SourceStatic.Volume = volume; return false; };
         buttonPow.OnInteract += () => { buttonPow.AddInteractionPunch(0.1f); Power(); return false; };
         buttonChn.OnInteract += () => { buttonChn.AddInteractionPunch(0.1f); Channel(); return false; };
         Power();
@@ -116,15 +112,15 @@ public class TVScript : MonoBehaviour
     {
         if(_solved)
             return;
-        if(dirMode % 4 == dir ^ spinMode == 1)
+        if((dirMode % 4 == dir && spinMode == 0) || ((dirMode + 2) % 4 == dir && spinMode == 1))
         {
-            //Debug.LogFormat("[TV # {0}] Corect! Solved.", _id);
+            Debug.LogFormat("[TV # {0}] Correct! Solved.", _id);
             Module.HandlePass();
             _solved = true;
         }
         else
         {
-            //Debug.LogFormat("[TV # {0}] Struck! You entered {1}, but I expected {2}.", _id, new string[] { "up", "right", "down", "left" }[dir], new string[] { "up", "right", "down", "left" }[dirMode % 4]);
+            Debug.LogFormat("[TV # {0}] Struck! You entered {1}, but I expected {2}.", _id, new string[] { "up", "right", "down", "left" }[dir], new string[] { "up", "right", "down", "left" }[(dirMode + (spinMode == 1 ? 2 : 0)) % 4]);
             Module.HandleStrike();
         }
     }
@@ -149,8 +145,8 @@ public class TVScript : MonoBehaviour
             screenMode--;
             buttonChn.transform.localPosition = new Vector3(0.01f, 0f, 0.0081f);
         }
-        //if(screenMode > 1)
-            //Debug.LogFormat("[TV #{0}] Turned screen to {1}.", _id, new string[] { "Off", "Off", "Channel 3", "Channel 4" }[screenMode]);
+        if(screenMode > 1)
+            Debug.LogFormat("[TV #{0}] Turned screen to {1}.", _id, new string[] { "Off", "Off", "Channel 3", "Channel 4" }[screenMode]);
         UpdateScreen();
     }
 
@@ -158,7 +154,7 @@ public class TVScript : MonoBehaviour
     {
         screenMode += 2;
         screenMode %= 4;
-        //Debug.LogFormat("[TV #{0}] Turned screen to {1}.", _id, new string[] { "Off", "Off", "Channel 3", "Channel 4" }[screenMode]);
+        Debug.LogFormat("[TV #{0}] Turned screen to {1}.", _id, new string[] { "Off", "Off", "Channel 3", "Channel 4" }[screenMode]);
         UpdateScreen();
     }
 
@@ -167,27 +163,27 @@ public class TVScript : MonoBehaviour
         switch(screenMode)
         {
             case 2:
-                Source1.mute = true;
-                Source2.mute = true;
-                SourceStatic.mute = false;
+                Source1.AudioSource.mute = true;
+                Source2.AudioSource.mute = true;
+                SourceStatic.AudioSource.mute = false;
                 staticScreen.transform.localPosition = new Vector3(0f, 0f, 0f);
                 videoScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 blackScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 Player.Stop();
                 break;
             case 3:
-                Source1.mute = false;
-                Source2.mute = false;
-                SourceStatic.mute = true;
+                Source1.AudioSource.mute = false;
+                Source2.AudioSource.mute = false;
+                SourceStatic.AudioSource.mute = true;
                 staticScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 videoScreen.transform.localPosition = new Vector3(0f, 0f, 0f);
                 blackScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 Player.Play();
                 break;
             default:
-                Source1.mute = true;
-                Source2.mute = true;
-                SourceStatic.mute = true;
+                Source1.AudioSource.mute = true;
+                Source2.AudioSource.mute = true;
+                SourceStatic.AudioSource.mute = true;
                 staticScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 videoScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 blackScreen.transform.localPosition = new Vector3(0f, 0f, 0f);
@@ -195,26 +191,17 @@ public class TVScript : MonoBehaviour
                 break;
         }
     }
-
-    private IEnumerator Wobble(int dirMode)
-    {
-        float timer = 0;
-        while(true)
-        {
-            timer += Time.deltaTime;
-            Rig.ArrowParent.localEulerAngles = new Vector3(0f, 90f * dirMode + 30f * WobbleCurve.Evaluate(timer / 6f), 0f);
-            yield return null;
-        }
-    }
-
+    
     private IEnumerator Spin(int dirMode)
     {
-        Rig.ArrowParent.localEulerAngles = new Vector3(0f, 90f * dirMode, 0f);
+        bool wobble = Random.Range(0, 2) == 0;
+        if(wobble)
+            Rig.ArrowParent.localEulerAngles = new Vector3(0f, 90f * dirMode, 0f);
         float timer = 0f;
         while(true)
         {
             timer += Time.deltaTime;
-            Rig.Arrow.localEulerAngles = new Vector3(-60f * timer, 0f, 0f);
+            Rig.Arrow.localEulerAngles = !wobble ? new Vector3(0f, 90f * dirMode + 30f * WobbleCurve.Evaluate(timer / 6f), 0f) : new Vector3(-60f * timer, 0f, 0f);
             yield return null;
         }
     }

@@ -172,6 +172,9 @@ GameObject:
   - component: {fileID: 82785071623154846}
   - component: {fileID: 82485002903727868}
   - component: {fileID: 82667666698415524}
+  - component: {fileID: 114700331514443894}
+  - component: {fileID: 114887377247630468}
+  - component: {fileID: 114233633027875880}
   m_Layer: 0
   m_Name: Video Player
   m_TagString: Untagged
@@ -1717,6 +1720,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   HighlightScale: {x: 1, y: 1, z: 1}
   OutlineAmount: 0
+--- !u!114 &114233633027875880
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1426540707143226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1543043319, guid: 91a38c1de9502d94782f34ced7217b09, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _isSFX: 1
+  _audioClips: []
+  _audioSource: {fileID: 82667666698415524}
 --- !u!114 &114257655999471088
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1792,9 +1809,9 @@ MonoBehaviour:
     m_PostInfinity: 0
     m_RotationOrder: 0
   Player: {fileID: 328193985374121160}
-  Source1: {fileID: 82785071623154846}
-  Source2: {fileID: 82485002903727868}
-  SourceStatic: {fileID: 82667666698415524}
+  Source1: {fileID: 114700331514443894}
+  Source2: {fileID: 114887377247630468}
+  SourceStatic: {fileID: 114233633027875880}
   staticMat: {fileID: 23401483537835428}
   buttonVol: {fileID: 114830000838779960}
   buttonPow: {fileID: 114660128626198046}
@@ -1941,6 +1958,20 @@ MonoBehaviour:
   AllowSelectionWrapY: 0
   ForceSelectionHighlight: 0
   ForceInteractionHighlight: 0
+--- !u!114 &114700331514443894
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1426540707143226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1543043319, guid: 91a38c1de9502d94782f34ced7217b09, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _isSFX: 1
+  _audioClips: []
+  _audioSource: {fileID: 82785071623154846}
 --- !u!114 &114751597348016014
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -2046,6 +2077,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   HighlightScale: {x: 1, y: 1, z: 1}
   OutlineAmount: 0
+--- !u!114 &114887377247630468
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1426540707143226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1543043319, guid: 91a38c1de9502d94782f34ced7217b09, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _isSFX: 1
+  _audioClips: []
+  _audioSource: {fileID: 82485002903727868}
 --- !u!328 &328193985374121160
 VideoPlayer:
   m_ObjectHideFlags: 1
