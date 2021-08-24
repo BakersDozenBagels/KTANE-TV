@@ -1,7 +1,7 @@
 ﻿using System.Collections;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Video;
-using KeepCoding;
 
 public class TVScript : MonoBehaviour
 {
@@ -53,14 +53,7 @@ public class TVScript : MonoBehaviour
 #else
         if(clips.Length == 0)
         {
-            IEnumerator videos = KeepCoding.PathManager.LoadVideoClips(GetType(), "video");
-            while(videos.MoveNext())
-            {
-                if(videos.Current.GetType() == typeof(VideoClip[]))
-                {
-                    clips = (VideoClip[])videos.Current;
-                }
-            }
+            clips = KeepCoding.PathManager.GetAssets<VideoClip>("tvvideo");
         }
 #endif
         Rig.Camera.targetTexture = new RenderTexture(Rig.Camera.targetTexture);
@@ -191,7 +184,7 @@ public class TVScript : MonoBehaviour
                 break;
         }
     }
-    
+
     private IEnumerator Spin(int dirMode)
     {
         bool wobble = Random.Range(0, 2) == 0;
@@ -213,5 +206,58 @@ public class TVScript : MonoBehaviour
             Rig.BackSpinner.localEulerAngles += new Vector3(0f, spinMode == 0 ? Time.deltaTime * 60f : Time.deltaTime * -60f, 0f);
             yield return null;
         }
+    }
+
+#pragma warning disable 414
+    private string TwitchHelpMessage = "Use '!{0} power' to turn the TV on. '!{0} brightness even' to press brightness on an even digit.";
+#pragma warning restore 414
+
+    IEnumerator ProcessTwitchCommand(string command)
+    {
+        volume = 0f;
+        Source1.Volume = volume;
+        Source2.Volume = volume;
+        SourceStatic.Volume = volume;
+
+        command = command.Trim().ToLowerInvariant();
+        Match m;
+
+        if(Regex.IsMatch(command, "(?:press )?power"))
+        {
+            yield return null;
+            buttonPow.OnInteract();
+            yield break;
+        }
+        if((m = Regex.Match(command, "(?:press )?(brightness|contrast) (even|odd)")).Success)
+        {
+            yield return null;
+            KMSelectable button = null;
+            if(m.Groups[1].Value == "brightness")
+                button = buttonBrg;
+            if(m.Groups[1].Value == "contrast")
+                button = buttonCon;
+            if(m.Groups[2].Value == "even")
+                yield return new WaitUntil(() => Mathf.FloorToInt(Info.GetTime()) % 2 == 0);
+            if(m.Groups[2].Value == "odd")
+                yield return new WaitUntil(() => Mathf.FloorToInt(Info.GetTime()) % 2 == 1);
+            button.OnInteract();
+        }
+        if(Regex.IsMatch(command, "volume"))
+            yield return "sentochaterror Volume is inaccessible due to concerns over people's hearing.";
+        if(Regex.IsMatch(command, "channel"))
+            yield return "sentochaterror Channel is inaccessible due to concerns over copyright.";
+    }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        int solDir = spinMode == 1 ? dirMode + 2 % 4 : dirMode;
+        if(solDir == 0 || solDir == 3)
+            yield return new WaitUntil(() => Mathf.FloorToInt(Info.GetTime()) % 2 == 0);
+        else
+            yield return new WaitUntil(() => Mathf.FloorToInt(Info.GetTime()) % 2 == 1);
+        if(spinMode % 2 == 0)
+            buttonBrg.OnInteract();
+        else
+            buttonCon.OnInteract();
     }
 }
