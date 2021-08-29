@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Video;
@@ -8,7 +9,7 @@ public class TVScript : MonoBehaviour
     public GameObject RigFab;
     public AnimationCurve WobbleCurve;
     public VideoPlayer Player;
-    public AudioScript Source1, Source2, SourceStatic;
+    public AudioClip staticAudio;
     public MeshRenderer staticMat;
     public KMSelectable buttonVol, buttonPow, buttonBrg, buttonCon, buttonChn;
     public GameObject staticScreen, videoScreen, blackScreen;
@@ -24,12 +25,12 @@ public class TVScript : MonoBehaviour
     private float volume = 0.1f;
 
     private static VideoClip[] clips = new VideoClip[0];
+    private AudioScript source1, source2, sourceStatic;
     private int currentClip = 1;
 
     private bool _solved = false;
 
     private CameraRig Rig;
-
     void Start()
     {
         GameObject c = Instantiate(RigFab);
@@ -64,18 +65,23 @@ public class TVScript : MonoBehaviour
         //camera.fieldOfView *= transform.lossyScale.x;
         //camera.farClipPlane *= transform.lossyScale.y;
         Player.clip = clips[1];
-        Player.SetTargetAudioSource(0, Source1.AudioSource);
-        Player.SetTargetAudioSource(1, Source2.AudioSource);
-        Source1.Volume = volume;
-        Source2.Volume = volume;
-        SourceStatic.Volume = volume;
+        GameObject playerObject = Player.gameObject;
+        source1 = playerObject.AddComponent<AudioScript>();
+        source2 = playerObject.AddComponent<AudioScript>();
+        sourceStatic = playerObject.AddComponent<AudioScript>();
+        sourceStatic.AudioSource.clip = staticAudio;
+        Player.SetTargetAudioSource(0, source1.AudioSource);
+        Player.SetTargetAudioSource(1, source2.AudioSource);
+        source1.Volume = volume;
+        source2.Volume = volume;
+        sourceStatic.Volume = volume;
         Player.Play();
-        SourceStatic.AudioSource.Play();
+        sourceStatic.AudioSource.Play();
 
         Player.isLooping = true;
         Player.loopPointReached += NextVideo;
 
-        buttonVol.OnInteract += () => { buttonVol.AddInteractionPunch(0.1f); volume += 0.1f; volume %= 1f; Source1.Volume = volume; Source2.Volume = volume; SourceStatic.Volume = volume; return false; };
+        buttonVol.OnInteract += () => { buttonVol.AddInteractionPunch(0.1f); volume += 0.1f; volume %= 1f; source1.Volume = volume; source2.Volume = volume; sourceStatic.Volume = volume; return false; };
         buttonPow.OnInteract += () => { buttonPow.AddInteractionPunch(0.1f); Power(); return false; };
         buttonChn.OnInteract += () => { buttonChn.AddInteractionPunch(0.1f); Channel(); return false; };
         Power();
@@ -156,27 +162,27 @@ public class TVScript : MonoBehaviour
         switch(screenMode)
         {
             case 2:
-                Source1.AudioSource.mute = true;
-                Source2.AudioSource.mute = true;
-                SourceStatic.AudioSource.mute = false;
+                source1.AudioSource.mute = true;
+                source2.AudioSource.mute = true;
+                sourceStatic.AudioSource.mute = false;
                 staticScreen.transform.localPosition = new Vector3(0f, 0f, 0f);
                 videoScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 blackScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 Player.Stop();
                 break;
             case 3:
-                Source1.AudioSource.mute = false;
-                Source2.AudioSource.mute = false;
-                SourceStatic.AudioSource.mute = true;
+                source1.AudioSource.mute = false;
+                source2.AudioSource.mute = false;
+                sourceStatic.AudioSource.mute = true;
                 staticScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 videoScreen.transform.localPosition = new Vector3(0f, 0f, 0f);
                 blackScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 Player.Play();
                 break;
             default:
-                Source1.AudioSource.mute = true;
-                Source2.AudioSource.mute = true;
-                SourceStatic.AudioSource.mute = true;
+                source1.AudioSource.mute = true;
+                source2.AudioSource.mute = true;
+                sourceStatic.AudioSource.mute = true;
                 staticScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 videoScreen.transform.localPosition = new Vector3(0f, 0f, -0.1f);
                 blackScreen.transform.localPosition = new Vector3(0f, 0f, 0f);
@@ -215,9 +221,9 @@ public class TVScript : MonoBehaviour
     IEnumerator ProcessTwitchCommand(string command)
     {
         volume = 0f;
-        Source1.Volume = volume;
-        Source2.Volume = volume;
-        SourceStatic.Volume = volume;
+        source1.Volume = volume;
+        source2.Volume = volume;
+        sourceStatic.Volume = volume;
 
         command = command.Trim().ToLowerInvariant();
         Match m;
