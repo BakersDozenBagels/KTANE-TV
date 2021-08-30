@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Video;
@@ -25,7 +24,7 @@ public class TVScript : MonoBehaviour
     private float volume = 0.1f;
 
     private static VideoClip[] clips = new VideoClip[0];
-    private AudioScript source1, source2, sourceStatic;
+    private TVAudioScript source1, source2, sourceStatic;
     private int currentClip = 1;
 
     private bool _solved = false;
@@ -66,9 +65,9 @@ public class TVScript : MonoBehaviour
         //camera.farClipPlane *= transform.lossyScale.y;
         Player.clip = clips[1];
         GameObject playerObject = Player.gameObject;
-        source1 = playerObject.AddComponent<AudioScript>();
-        source2 = playerObject.AddComponent<AudioScript>();
-        sourceStatic = playerObject.AddComponent<AudioScript>();
+        source1 = playerObject.AddComponent<TVAudioScript>();
+        source2 = playerObject.AddComponent<TVAudioScript>();
+        sourceStatic = playerObject.AddComponent<TVAudioScript>();
         sourceStatic.AudioSource.clip = staticAudio;
         Player.SetTargetAudioSource(0, source1.AudioSource);
         Player.SetTargetAudioSource(1, source2.AudioSource);
@@ -248,9 +247,9 @@ public class TVScript : MonoBehaviour
                 yield return new WaitUntil(() => Mathf.FloorToInt(Info.GetTime()) % 2 == 1);
             button.OnInteract();
         }
-        if(Regex.IsMatch(command, "volume"))
+        if(Regex.IsMatch(command, "(?:press )?volume"))
             yield return "sentochaterror Volume is inaccessible due to concerns over people's hearing.";
-        if(Regex.IsMatch(command, "channel"))
+        if(Regex.IsMatch(command, "(?:press )?channel"))
             yield return "sentochaterror Channel is inaccessible due to concerns over copyright.";
     }
 
